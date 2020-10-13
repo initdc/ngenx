@@ -67,7 +67,7 @@ nope() {
 }
 
 yelp() {
-    _green "working done, maybe you need fix some details, good luck\n."
+    _green "working done, maybe you need fix some details, good luck"
 }
 
 re_input() {
@@ -209,7 +209,7 @@ options() {
     if [[ -z "$cmd" ]]; then
         read -p "$(echo -e "${cyan}choose option to contine: $none")" choose
     else
-        choose=$cmd
+        choose=${cmd:0:1}
     fi
 
     while :; do
