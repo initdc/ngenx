@@ -20,7 +20,7 @@ _cyan() { echo -e ${cyan}$*${none}; }
 
 ### edit it
 software='kodbox'
-version='v0.1.0'
+version='v0.1.1'
 ###
 
 domain=''
@@ -183,7 +183,7 @@ both_conf() {
 
 _install() {
     read -p "$(echo -e "${red}It will make software change, you better to know, any key to continue: $none")" nil
-
+    sudo apt update
     sudo apt install -y \
         nginx-full \
         php \
@@ -200,7 +200,8 @@ download() {
         unzip
     
     wget https://github.com/initdc/KodBox/archive/latest.zip -O /tmp/latest.zip
-    unzip /tmp/latest.zip -d /tmp && mv /tmp/KodBox-latest /var/www/kodbox
+    unzip /tmp/latest.zip -d /tmp && cp -rf /tmp/KodBox-latest/* /var/www/kodbox
+    chmod -Rf 777 /var/www/kodbox/*
 
     yelp
 }
