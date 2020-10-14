@@ -23,8 +23,9 @@ software='kodbox'
 version='v0.1.0'
 ###
 
-domains=''
+domain=''
 fpm_version=''
+choose="q"
 
 test() { echo -e "$red---$green---$yellow---$blue---$magenta---$cyan---$none"; }
 
@@ -72,12 +73,13 @@ yelp() {
 
 re_input() {
     _magenta "wrong option, please re-input."
+    read -p "$(echo -e "${cyan}choose option to continue: $none")" choose
 }
 
 _input() {
-    read -p "$(echo -e "${blue}input your domain name, devide by space(\" \"): $none")" domains
+    read -p "$(echo -e "${blue}input your domain name: $none")" domain
     read -p "$(echo -e "${blue}specify your php-fpm version (if you don't understand, just skip): $none")" fpm_version
-    read -p "$(echo -e "${cyan}will generate conf, any key to contine$none")" nil
+    read -p "$(echo -e "${cyan}will generate conf, any key to continue$none")" nil
     echo
 }
 
@@ -85,13 +87,13 @@ http_conf() {
 
     _input
 
-    echo > kod.conf "server {
+    echo > /etc/nginx/conf.d/kod.conf "server {
     listen 80;
     listen [::]:80;
-    server_name $domains;
+    server_name $domain;
 
-    access_log /var/log/nginx/$domains.access;
-    error_log /var/log/nginx/$domains.error;
+    access_log /var/log/nginx/$domain.access;
+    error_log /var/log/nginx/$domain.error;
 
     root   /var/www/kodbox;
     index  index.php index.html index.htm;
@@ -113,19 +115,19 @@ ssl_conf() {
 
     _input
 
-    echo > kod.conf "server {
+    echo > /etc/nginx/conf.d/kod.conf "server {
     listen 443 ssl;
     listen [::]:443 ssl;
-    server_name $domains;
+    server_name $domain;
 
     ssl on;
-    ssl_certificate         /etc/nginx/cert/cert.pem;
-    ssl_certificate_key     /etc/nginx/cert/key.pem;
+    ssl_certificate         /etc/letsencrypt/live/$domain/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/$domain/privkey.pem;
     ssl_protocols           SSLv3 TLSv1 TLSv1.1 TLSv1.2;
     ssl_ciphers             HIGH:!aNULL:!MD5;
 
-    access_log /var/log/nginx/$domains.access;
-    error_log /var/log/nginx/$domains.error;
+    access_log /var/log/nginx/$domain.access;
+    error_log /var/log/nginx/$domain.error;
 
     root   /var/www/kodbox;
     index  index.php index.html index.htm;
@@ -147,21 +149,21 @@ both_conf() {
 
     _input
 
-    echo > kod.conf "server {
+    echo > /etc/nginx/conf.d/kod.conf "server {
     listen 80;
     listen [::]:80;
     listen 443 ssl;
     listen [::]:443 ssl;
-    server_name $domains;
+    server_name $domain;
 
     ssl on;
-    ssl_certificate         /etc/nginx/cert/cert.pem;
-    ssl_certificate_key     /etc/nginx/cert/key.pem;
+    ssl_certificate         /etc/letsencrypt/live/$domain/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/$domain/privkey.pem;
     ssl_protocols           SSLv3 TLSv1 TLSv1.1 TLSv1.2;
     ssl_ciphers             HIGH:!aNULL:!MD5;
 
-    access_log /var/log/nginx/$domains.access;
-    error_log /var/log/nginx/$domains.error;
+    access_log /var/log/nginx/$domain.access;
+    error_log /var/log/nginx/$domain.error;
 
     root   /var/www/kodbox;
     index  index.php index.html index.htm;
@@ -180,6 +182,8 @@ both_conf() {
 }
 
 _install() {
+    read -p "$(echo -e "${red}It will make software change, you better to know, any key to continue: $none")" nil
+
     sudo apt install -y \
         nginx-full \
         php \
@@ -190,24 +194,37 @@ _install() {
 }
 
 download() {
+    read -p "$(echo -e "${yellow}It will download latest $software and save to /var/www, you better to know, any key to continue: $none")" nil
     sudo apt install -y \
         wget \
         unzip
     
-    wget https://github.com/initdc/KodBox/archive/latest.zip -O KodBox-latest.zip
-    unzip KodBox-latest.zip -d ./ && mv KodBox-latest kodbox
+    wget https://github.com/initdc/KodBox/archive/latest.zip -O /tmp/latest.zip
+    unzip /tmp/latest.zip -d /tmp && mv /tmp/KodBox-latest /var/www/kodbox
 
     yelp
 }
 
 renew() {
-    sudo apt install certbot
+    if [[ -z "$domain" ]]; then
+        read -p "$(echo -e "${blue}input your domain name: $none")" domain
+    fi
+
+    sudo apt install -y certbot python3-certbot-nginx
+    certbot certonly -d $domain
+}
+
+aio() {
+    both_conf
+    _install
+    download
+    renew
 }
 
 options() {
 
     if [[ -z "$cmd" ]]; then
-        read -p "$(echo -e "${cyan}choose option to contine: $none")" choose
+        read -p "$(echo -e "${cyan}choose option to continue: $none")" choose
     else
         choose=${cmd:0:1}
     fi
@@ -248,6 +265,7 @@ options() {
             break
             ;;
         q | Q)
+            nope
             exit 1
             ;;
         *)
@@ -260,7 +278,7 @@ options() {
 main() {
     cmd="$@"
     intro
-    [[ $(id -u) != 0 ]] && echo -e "${cyan}Please run as root user${none}" && exit 1   
+    [[ $(id -u) != 0 ]] && echo -e "${cyan}Please run with sudo${none}" && exit 1   
     options $cmd
     
 }
