@@ -20,7 +20,7 @@ _cyan() { echo -e ${cyan}$*${none}; }
 
 ### edit it
 software='kodbox'
-version='v0.1.1'
+version='v0.1.3'
 ###
 
 domain=''
@@ -152,6 +152,25 @@ both_conf() {
     echo > /etc/nginx/conf.d/kod.conf "server {
     listen 80;
     listen [::]:80;
+    server_name $domain;
+
+    access_log /var/log/nginx/$domain.access;
+    error_log /var/log/nginx/$domain.error;
+
+    root   /var/www/kodbox;
+    index  index.php index.html index.htm;
+
+    location ~ \.php(.*)$ {
+        fastcgi_pass        unix:/run/php/php$fpm_version-fpm.sock;
+        include             fastcgi_params;
+        fastcgi_param       SCRIPT_FILENAME    \$document_root\$fastcgi_script_name;
+        fastcgi_param       SCRIPT_NAME        \$fastcgi_script_name;
+        fastcgi_split_path_info                ^(.+\.php)(.*)$;
+        fastcgi_param       PATH_INFO          \$fastcgi_path_info;
+    }
+}
+
+server {
     listen 443 ssl;
     listen [::]:443 ssl;
     server_name $domain;
