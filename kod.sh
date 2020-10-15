@@ -86,7 +86,7 @@ _input() {
 http_conf() {
 
     _input
-
+    touch /etc/nginx/conf.d/kod.conf
     echo > /etc/nginx/conf.d/kod.conf "server {
     listen 80;
     listen [::]:80;
@@ -114,7 +114,7 @@ http_conf() {
 ssl_conf() {
 
     _input
-
+    touch /etc/nginx/conf.d/kod.conf
     echo > /etc/nginx/conf.d/kod.conf "server {
     listen 443 ssl;
     listen [::]:443 ssl;
@@ -148,7 +148,7 @@ ssl_conf() {
 both_conf() {
 
     _input
-
+    touch /etc/nginx/conf.d/kod.conf
     echo > /etc/nginx/conf.d/kod.conf "server {
     listen 80;
     listen [::]:80;
@@ -200,6 +200,7 @@ download() {
         unzip
     
     wget https://github.com/initdc/KodBox/archive/latest.zip -O /tmp/latest.zip
+    mkdir /var/www/kodbox
     unzip /tmp/latest.zip -d /tmp && cp -rf /tmp/KodBox-latest/* /var/www/kodbox
     chmod -Rf 777 /var/www/kodbox/*
 
