@@ -20,7 +20,7 @@ _cyan() { echo -e ${cyan}$*${none}; }
 
 ### edit it
 software='kodbox'
-version='v0.1.3'
+version='v0.2.1'
 ###
 
 domain=''
@@ -79,15 +79,19 @@ re_input() {
 _input() {
     read -p "$(echo -e "${blue}input your domain name: $none")" domain
     read -p "$(echo -e "${blue}specify your php-fpm version (if you don't understand, just skip): $none")" fpm_version
-    read -p "$(echo -e "${cyan}will generate conf, any key to continue$none")" nil
+    read -p "$(echo -e "${blue}specify your conf file name (if you don't want to set, just skip): $none")" conf_file
+    if [[ -z "$conf_file" ]]; then
+        conf_file='kod.conf'
+    fi
+    read -p "$(echo -e "${cyan}will generate conf, any key to continue: $none")" nil
     echo
 }
 
 http_conf() {
 
     _input
-    touch /etc/nginx/conf.d/kod.conf
-    echo > /etc/nginx/conf.d/kod.conf "server {
+    touch /etc/nginx/conf.d/$conf_file
+    echo > /etc/nginx/conf.d/$conf_file "server {
     listen 80;
     listen [::]:80;
     server_name $domain;
@@ -114,13 +118,12 @@ http_conf() {
 ssl_conf() {
 
     _input
-    touch /etc/nginx/conf.d/kod.conf
-    echo > /etc/nginx/conf.d/kod.conf "server {
+    touch /etc/nginx/conf.d/$conf_file
+    echo > /etc/nginx/conf.d/$conf_file "server {
     listen 443 ssl;
     listen [::]:443 ssl;
     server_name $domain;
 
-    ssl on;
     ssl_certificate         /etc/letsencrypt/live/$domain/fullchain.pem;
     ssl_certificate_key     /etc/letsencrypt/live/$domain/privkey.pem;
     ssl_protocols           SSLv3 TLSv1 TLSv1.1 TLSv1.2;
@@ -148,8 +151,8 @@ ssl_conf() {
 both_conf() {
 
     _input
-    touch /etc/nginx/conf.d/kod.conf
-    echo > /etc/nginx/conf.d/kod.conf "server {
+    touch /etc/nginx/conf.d/$conf_file
+    echo > /etc/nginx/conf.d/$conf_file "server {
     listen 80;
     listen [::]:80;
     server_name $domain;
@@ -175,7 +178,6 @@ server {
     listen [::]:443 ssl;
     server_name $domain;
 
-    ssl on;
     ssl_certificate         /etc/letsencrypt/live/$domain/fullchain.pem;
     ssl_certificate_key     /etc/letsencrypt/live/$domain/privkey.pem;
     ssl_protocols           SSLv3 TLSv1 TLSv1.1 TLSv1.2;
@@ -203,7 +205,7 @@ server {
 _install() {
     read -p "$(echo -e "${red}It will make software change, you better to know, any key to continue: $none")" nil
     sudo apt update
-    sudo apt install -y \
+    sudo apt install -y -–no-install-recommends\
         nginx-full \
         php \
         php-fpm \
@@ -214,12 +216,12 @@ _install() {
 
 download() {
     read -p "$(echo -e "${yellow}It will download latest $software and save to /var/www, you better to know, any key to continue: $none")" nil
-    sudo apt install -y \
+    sudo apt install -y -–no-install-recommends\
         wget \
         unzip
-    
+
     wget https://github.com/initdc/KodBox/archive/latest.zip -O /tmp/latest.zip
-    mkdir /var/www/kodbox
+    mkdir -p /var/www/kodbox
     unzip /tmp/latest.zip -d /tmp && cp -rf /tmp/KodBox-latest/* /var/www/kodbox
     chmod -Rf 777 /var/www/kodbox/*
 
@@ -230,13 +232,13 @@ renew() {
     if [[ -z "$domain" ]]; then
         read -p "$(echo -e "${blue}input your domain name: $none")" domain
     fi
-
+    read -p "$(echo -e "${cyan}input your mail address: $none")" mail
     sudo apt install -y certbot python3-certbot-nginx
-    certbot certonly -d $domain
+    sudo certbot --non-interactive --redirect --agree-tos --nginx -d $domain -m $mail
 }
 
 aio() {
-    both_conf
+    http_conf
     _install
     download
     renew
